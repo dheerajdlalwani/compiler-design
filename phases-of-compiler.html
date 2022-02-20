@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phases of a Compiler</title>
+</head>
+<style>
+    @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap");
+    html,body 
+    {
+        font-family: "Manrope", sans-serif;
+        background-color: #03002c;
+        color: #cbcae2;
+    }
+    A
+    {
+        color: #706bff;
+    }
+</style>
+<body>
+    <h4>THIS CONTENT DOES NOT BELONG TO ME. I HAVE JUST ADDED IT HERE WITH SOME BETTER STYLING SO THAT I CAN EASILY READ AND STUDY.</h4>
+    <h4> <a href="https://pages.cs.wisc.edu/~fischer/cs536.s08/course.hold/html/NOTES/1.OVERVIEW.html">ORIGINAL SOURCE</a></h4>
+    <P>
+        <H1>Compiler Overview</A></H1>
+        <HR>
+        <H2>Contents</H2>
+        
+        <UL>
+          <LI><A HREF="#intro">Introduction</A>
+          <LI><A HREF="#scanner">The Scanner</A>
+          <LI><A HREF="#parser">The Parser</A>
+          <LI><A HREF="#semantic">The Semantic Analyzer</A>
+          <LI><A HREF="#int">The Intermediate Code Generator</A>
+          <LI><A HREF="#opt">The Optimizer</A>
+          <LI><A HREF="#codegen">The Code Generator</A>
+        </UL>
+        
+        <P>
+        <H1>Introduction</H1>
+        <P>
+        What is a compiler?
+        <UL>
+          <LI> A recognizer (of some source language L).
+          <LI> A translator (of programs written in L into programs written in some
+               object or target language L').
+        </UL>
+        Here's a simple pictorial view:
+        <pre>
+            source program --> COMPILER --> object program
+                                      |
+                          --> error messages
+        </pre>
+        
+        A compiler is <em>itself</em> a program, written in some <b>host</b>
+        language.
+        (In cs536, students will implement a compiler for a simple source language
+        using Java as the host language.)
+        
+        <P>
+        A compiler operates in <em>phases</em>;
+        each phase translates the source program from one representation to
+        another.  Different compilers may include different phases, and/or may
+        order them somewhat differently.
+        A typical organization is shown below.
+        <UL>
+        <pre>
+             source code	
+        (sequence of characters)
+                ||
+              ||
+              \/
+         ----------------------
+         |  lexical analyzer  |
+         |    (scanner)       |
+         ----------------------
+                ||
+              ||  sequence of tokens
+              \/
+         ----------------------
+         |   syntax analyzer  |
+         |     (parser)       |
+         ----------------------
+                ||
+              ||  abstract-syntax tree
+              \/
+         ----------------------
+         | semantic analyzer  |
+         ----------------------
+                ||
+              ||  augmented, annotated abstract-syntax tree
+              \/
+         ----------------------
+         |  intermediate code  |
+         |     generator       |			   /\
+         ----------------------				   ||
+                ||					FRONT END
+              ||  intermediate code	     ----------------------------------
+              \/					BACK END
+         ----------------------				   ||
+         |     optimizer       |			   \/
+         ----------------------
+                ||
+              ||  optimized intermediate code
+              \/
+         ----------------------
+         |        code        |
+         |     generator      |
+         ----------------------
+                ||
+              ||  
+              \/
+              object program (might be assembly code or machine code)
+        </pre>
+        </UL>
+        Below, we look at each phase of the compiler.
+        
+        <P>
+        <H1>The Scanner</H1>
+        <P>
+        The scanner is called by the parser;
+        here's how it works:
+        <UL>
+          <LI> The scanner reads characters from the source program.
+          <LI> The scanner groups the characters into <b>lexemes</b> (sequences
+               of characters that "go together").
+          <LI> Each lexeme corresponds to a <b>token</b>; the scanner returns the next
+               token (plus maybe some additional information) to the parser.
+          <LI> The scanner may also discover lexical errors (e.g., erroneous
+               characters).
+        </UL>
+        The definitions of what is a lexeme, token, or bad character all depend on
+        the source language.
+        
+        <P>
+        <b>Example</b>
+        <P>
+        Here are some Java lexemes and the corresponding tokens:
+        <UL>
+        <pre>
+        lexeme:                 ;           =        index    tmp    37        102
+        
+        corresponding token:  SEMI-COLON   ASSIGN    IDENT  IDENT  INT-LIT  INT-LIT
+        </pre>
+        </UL>
+        <P>
+        Note that multiple lexemes can correspond to the same token (e.g., there are
+        many identifiers).
+        
+        <P>
+        Given the source code:
+        <UL>
+        <pre>
+        position  =  initial +  rate   *    60 ;
+        </pre>
+        </UL>
+        a Java scanner would return the following sequence of tokens:
+        <UL>
+        <pre>
+        IDENT  ASSIGN IDENT PLUS IDENT TIMES INT-LIT SEMI-COLON
+        </pre>
+        </UL>
+        
+        Erroneous characters for Java source include # and control-a.
+        
+        <P>
+        <H1>The Parser</H1>
+        <P>
+        The parser:
+        <UL>
+          <LI> Groups tokens into "grammatical phrases", discovering the underlying
+               structure of the source program.
+          <LI> Finds syntax errors.  For example, in Java the source code
+               <UL><tt>position  =   *  5 ;</tt></UL>
+               corresponds to the sequence of tokens:
+               <UL><tt>IDENT ASSIGN TIMES INT-LIT SEMI-COLON</tt></UL>
+               All are legal tokens, but that sequence of tokens is erroneous.
+          <LI> Might find some "static semantic" errors, e.g., a use of an undeclared
+               variable, or variables that are multiply declared.
+          <LI> Might generate code, or build some intermediate representation of
+               the program such as an abstract-syntax tree.
+        </UL>
+        <P>
+        <b>Example</b>
+        <UL>
+        <pre>
+        source code: position = initial + rate * 60 ;
+        
+        abstract-syntax tree:		=
+                          /    \
+                      position      +
+                                   / \
+                         initial  *
+                                 / \
+                          rate  60
+        </pre>
+        </UL>
+        Notes:
+        <UL>
+          <LI> The interior nodes of the tree are <b>operators</b>.
+          <LI> A node's children are its <b>operands</b>.
+          <LI> Each subtree forms a "logical unit", e.g., the subtree with * at
+               its root shows that because multiplication has higher precedence
+               than addition, this operation must be performed as a unit (<em>not</em>
+               initial+rate).
+        </UL>
+        
+        <P>
+        <H1>The Semantic Analyzer</H1>
+        <P>
+        The semantic analyzer checks for (more) "static semantic" errors,
+        e.g., type errors.
+        It may also annotate and/or change the abstract syntax tree (e.g., it
+        might annotate each node that represents an expression with its type).
+        </UL>
+        <b>Example:</b>
+        <pre>
+                Abstract syntax tree before semantic analysis
+        
+                                   =
+                                  / \
+                                 /   \
+                         position     +
+                                     / \
+                                    /   \
+                             initial     *
+                                        / \
+                                       /   \
+                                   rate     60
+        
+        
+                Abstract syntax tree after semantic analysis
+        
+        
+                                   = (float)
+                                  / \
+                                 /   \
+                         position     + (float)
+                         (float)     / \
+                                    /   \
+                             initial     * (float)
+                             (float)    / \
+                                       /   \
+                                   rate     intToFloat (float)
+                                                |
+                                                |
+                                                60 (int)
+        </pre>
+        
+        <P>
+        <H1>The Intermediate Code Generator</H1>
+        <P>
+        The intermediate code generator translates from abstract-syntax tree
+        to intermediate code.
+        One possibility is 3-address code (code in which each instruction
+        involves at most 3 operands).
+        Below is an example of 3-address code for the abstract-syntax tree
+        shown above.
+        Note that in this example, the first three instructions each have
+        exactly three operands (the location where the result of the
+        operation is stored, and two operators);
+        the fourth instruction has just two operands ("position" and "temp3").
+        <pre>
+                temp1 = inttofloat(60)
+                temp2 = rate * temp1
+                temp3 = initial + temp2
+                position = temp3
+        </pre>
+        
+        <P>
+        <H1>The Optimizer</H1>
+        <P>
+        The optimizer tries to improve code generated by the intermediate code
+        generator.
+        The goal is usually to make code run faster, but the optimizer may also
+        try to make the code smaller.
+        In the example above, an optimizer might first discover that the
+        conversion of the integer 60 to a floating-point number can be done
+        at compile time instead of at run time.
+        Then it might discover that there is no need for "temp1" or "temp3".
+        Here's the optimized code:
+        <pre>
+                temp2 = rate * 60.0
+                position = initial + temp2
+        </pre>
+        
+        <P>
+        <H1>The Code Generator</H1>
+        <P>
+        The code generator generates object code from (optimized) intermediate code.
+        For example, the following code might be generated for our running example:
+        <pre>
+        
+                LOADF	rate,R1
+                MULF	#60.0,R1
+                LOADF	initial,R2
+                ADDF	R2,R1
+                STOREF	R1,position
+        </pre>
+</body>
+</html>
