@@ -183,19 +183,17 @@
         </UL>
         <P>
         <b>Example</b>
-        <UL>
         <pre>
         source code: position = initial + rate * 60 ;
         
-        abstract-syntax tree:		=
-                          /    \
-                      position      +
-                                   / \
-                         initial  *
-                                 / \
-                          rate  60
+        abstract-syntax tree:         =
+                                    /   \
+                            position      +
+                                        /   \
+                                initial      *
+                                            / \
+                                        rate   60
         </pre>
-        </UL>
         Notes:
         <UL>
           <LI> The interior nodes of the tree are <b>operators</b>.
